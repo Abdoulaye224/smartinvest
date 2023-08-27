@@ -114,48 +114,53 @@ print(y_test.shape)
 
 
 #**************************************** Model LSTM
+@st.cache_data
+def train_model(md, x_train, y_train, epochs):
+    if md=="LSTM":
+        model = Sequential()
+        model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
+        model.add(LSTM(units=50, return_sequences=False))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=1))
+        model.compile(optimizer='adam', loss='mean_squared_error')
 
-model = Sequential()
-model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-model.add(LSTM(units=50, return_sequences=False))
-model.add(Dropout(0.2))
-model.add(Dense(units=1))
-model.compile(optimizer='adam', loss='mean_squared_error')
-
-model.fit(x_train, y_train, epochs=1, batch_size=32)
-
-predictions = model.predict(x_test)
-print(predictions)
-
-#********************************************** GRU
-GRU_model = Sequential()
-GRU_model.add(GRU(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-GRU_model.add(GRU(units=50, return_sequences=False))
-GRU_model.add(Dense(units=1))
-GRU_model.compile(optimizer='adam', loss='mean_squared_error')
-GRU_model.fit(x_train, y_train, epochs=1, batch_size=32)
-GRU_predictions = GRU_model.predict(x_test)
-
-#*********************************************** CNN
-input_shape = (x_train.shape[1], 1)
-num_classes = 2
-
-CNN = Sequential()
-CNN.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=input_shape))
-CNN.add(MaxPooling1D(pool_size=2))
-CNN.add(LSTM(units=50, return_sequences=True))
-CNN.add(Dropout(0.2))
-CNN.add(Flatten())
-CNN.add(Dense(1, activation='relu'))
+        model.fit(x_train, y_train, epochs=epochs, batch_size=32)
+    elif md=="GRU":
+        GRU_model = Sequential()
+        GRU_model.add(GRU(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
+        GRU_model.add(GRU(units=50, return_sequences=False))
+        GRU_model.add(Dense(units=1))
+        GRU_model.compile(optimizer='adam', loss='mean_squared_error')
+        GRU_model.fit(x_train, y_train, epochs=epochs, batch_size=32)
+    elif md=="CNN":
+        input_shape = (x_train.shape[1], 1)
+        num_classes = 2
+        model = Sequential()
+        model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=input_shape))
+        model.add(MaxPooling1D(pool_size=2))
+        model.add(LSTM(units=50, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(Flatten())
+        model.add(Dense(1, activation='relu'))
 
 
-CNN.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-CNN.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=1, batch_size=32)
+        model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
-cnn_predicted_stock = CNN.predict(x_test)
+        model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=32)
+    
+    return model
+
+epochs_to_train = 50  # Par exemple, 10 époques
+final_model = train_model('CNN', x_train, y_train, epochs_to_train)
+
+test_predict = final_model.predict(x_test)
+r2 = r2_score(y_test, test_predict)
+
+print(f"R-squared: {r2}")
+
+
 
 #****************************** P R E D I C T **************************************************
-
 num_days_to_predict = st.number_input("Nombre de jours à prédire :", min_value=1, max_value=365, value=30)  
 
 start_date = pd.to_datetime(test_data_dates[-1]) + timedelta(days=1)
@@ -165,17 +170,19 @@ future_dates = [start_date + timedelta(days=i) for i in range(num_days_to_predic
 
 x_future = x_test[-num_days_to_predict:]
 predictions_future = []
+predictions_future_test=[]
 
 for _ in range(num_days_to_predict):
-    prediction = model.predict(x_future)  # Prédire le prochain jour avec LSTM
+    prediction = final_model.predict(x_future)  # Prédire le prochain jour avec LSTM
     
     predictions_future.append(prediction[0, 0]) 
     x_future = np.roll(x_future, -1)
     x_future[-1, -1] = prediction[0, 0]
 
 
+predictions_future_test = scaler.inverse_transform(np.array(predictions_future).reshape(-1, 1)).flatten()
 
-future_df = pd.DataFrame({'Date': future_dates, 'Predicted': predictions_future})
+future_df = pd.DataFrame({'Date': future_dates, 'Predicted': predictions_future_test})
 
 st.write("Prédictions pour les {} prochains jours:".format(num_days_to_predict))
 st.dataframe(future_df)
@@ -189,13 +196,20 @@ st.plotly_chart(fig)
 
 #************************** S T R A T E G Y  ******************************
 
+real_future_df = pd.DataFrame({'Date': future_dates, 'Predicted': predictions_future})
+
+
+# Créez une liste pour stocker les résultats de chaque combinaison
+results = []
+
+# Créez une fonction pour appliquer la stratégie en fonction des fenêtres temporelles choisies
 def apply_strategy(long_window, short_window):
     # Vérifier que la fenêtre long terme est plus grande que la fenêtre court terme
     if long_window <= short_window:
-        print("La fenêtre long terme doit être plus grande que la fenêtre court terme.")
+        st.warning("La fenêtre long terme doit être plus grande que la fenêtre court terme.")
         return
     
-    df = pd.DataFrame({'Date': future_df['Date'], 'Price': future_df['Predicted']})
+    df = pd.DataFrame({'Date': real_future_df['Date'], 'Price': real_future_df['Predicted']})
     df.set_index('Date', inplace=True)
 
     # Calculer les moyennes mobiles à court et long terme
@@ -222,20 +236,22 @@ def apply_strategy(long_window, short_window):
             position = 0
         df['Position'][i] = position
 
-    # Afficher le graphique
+    # Créer le graphique Plotly
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df.index, y=df['Price'], mode='lines', name='Price'))
     fig.add_trace(go.Scatter(x=df.index, y=df['Short_MA'], mode='lines', name=f'Short MA ({short_window} days)'))
     fig.add_trace(go.Scatter(x=df.index, y=df['Long_MA'], mode='lines', name=f'Long MA ({long_window} days)'))
     buy_signals = df[df['Signal'] == 1]
     sell_signals = df[df['Signal'] == -1]
-    fig.add_trace(go.Scatter(x=buy_signals.index, y=buy_signals['Price'], mode='markers', marker=dict(color='green', size=10), name='Buy Signal'))
-    fig.add_trace(go.Scatter(x=sell_signals.index, y=sell_signals['Price'], mode='markers', marker=dict(color='red', size=10), name='Sell Signal'))
+    fig.add_trace(go.Scatter(x=buy_signals.index, y=buy_signals['Price'], mode='markers', marker=dict(color='green', size=10), name='Achat '))
+    fig.add_trace(go.Scatter(x=sell_signals.index, y=sell_signals['Price'], mode='markers', marker=dict(color='red', size=10), name='Vente'))
     fig.update_layout(title='Cross Moving Average Strategy',
                       xaxis_title='Date',
                       yaxis_title='Price')
-    st.plotly_chart(fig)
     
+    # Afficher le graphique avec Streamlit
+    st.plotly_chart(fig)
+
     # Calculer le rendement total de la stratégie en points
     total_return = 0
     position = 0
@@ -246,33 +262,27 @@ def apply_strategy(long_window, short_window):
             else:  # Vente
                 total_return += df['Price'][i]
             position = df['Position'][i]
-    
+
     # Ajouter le rendement total à la liste des résultats
     results.append({'Long_Window': long_window, 'Short_Window': short_window, 'Total_Return': total_return})
-#
-#
-#
-#long_window = st.slider("Choisissez la fenêtre temporelle longue :", min_value=10, max_value=100, step=1, value=30)
-#short_window = st.slider("Choisissez la fenêtre temporelle courte :", min_value=5, max_value=50, step=1, value=10)
-#
-#results = []
-#
-## Loop through different window combinations and populate the results list
-#for long_window in range(10, 101):
-#    for short_window in range(5, 51):
-#        if long_window > short_window:
-#            total_return = apply_strategy(long_window, short_window)  # Call your strategy function here
-#            results.append({'Long_Window': long_window, 'Short_Window': short_window, 'Total_Return': total_return})
-#
-## Once all combinations have been tested, find the combination with the highest total return
-#if results:
-#    best_combination = max(results, key=lambda x: x['Total_Return'])
-#    st.write("Résultats de chaque combinaison :")
-#    for result in results:
-#        st.write(f"Long Window: {result['Long_Window']}, Short Window: {result['Short_Window']}, Total Return: {result['Total_Return']:.2f} points")
-#    
-#    st.write("\nLa combinaison avec le meilleur rendement :")
-#    st.write(f"Long Window: {best_combination['Long_Window']}, Short Window: {best_combination['Short_Window']}, Total Return: {best_combination['Total_Return']:.2f} points")
-#else:
-#    st.write("Aucun résultat n'a été trouvé.")
-#
+    st.write(f"Rendement total pour Long Window: {long_window}, Short Window: {short_window} : {total_return:.2f} points")
+
+# Charger vos données future_df ici (remplacez-le par votre propre code)
+
+# Utilisez des widgets interactifs pour permettre à l'utilisateur de choisir les fenêtres temporelles
+st.sidebar.title("Paramètres de la Stratégie")
+long_window = st.sidebar.slider("Choisissez la fenêtre temporelle longue :", min_value=10, max_value=100, step=1, value=30)
+short_window = st.sidebar.slider("Choisissez la fenêtre temporelle courte :", min_value=5, max_value=50, step=1, value=10)
+
+# Bouton "Appliquer la Stratégie"
+apply_strategy_button = st.sidebar.button("Appliquer la Stratégie")
+
+apply_strategy(long_window, short_window)
+
+# Afficher les résultats de chaque combinaison et la combinaison avec le meilleur rendement
+if results:
+    best_combination = max(results, key=lambda x: x['Total_Return'])
+    st.sidebar.write("\nLa combinaison avec le meilleur rendement :")
+    st.sidebar.write(f"Long Window: {best_combination['Long_Window']}, Short Window: {best_combination['Short_Window']}, Total Return: {best_combination['Total_Return']:.2f} points")
+else:
+    st.sidebar.write("Aucune combinaison n'a été trouvée.")

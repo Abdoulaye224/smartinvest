@@ -10,3 +10,4 @@ openpyxl==3.0.9
 tensorflow==2.13.0
 scikit-learn==1.3.0
 scipy==1.10.1
+ntlk==3.8.1
