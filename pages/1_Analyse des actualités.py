@@ -42,7 +42,9 @@ parsed_data = []
 last_date = ""  # Initialiser la dernière date
 for ticker, new_table in new_tables.items():
     for row in new_table.findAll('tr'):
-        title = row.a.text
+        title_elem = row.find('a')  # Find the <a> tag within the row
+        if title_elem is not None:  # Check if the <a> tag exists
+            title = title_elem.text
         
         # Utilisation de strip() pour supprimer les espaces et sauts de ligne inutiles
         date_time_str = row.td.text.strip()
