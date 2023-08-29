@@ -96,5 +96,5 @@ fig.add_trace(go.Bar(x=mean_df.date, y=mean_df['compound'], name='score'))
 st.plotly_chart(fig,  use_container_width=True)
 #st.bar_chart(mean_df, x='date', y='compound')
 
-st.caption("Ce graphique vous offre la possibilité de discerner si les actualités récentes liées au marché ou à l'entreprise que vous avez sélectionnée penchent plutôt vers une tonalité positive ou négative.\
+st.caption("Le graphique ci-dessus vous offre la possibilité de discerner si les actualités récentes liées au marché ou à l'entreprise que vous avez sélectionnée penchent plutôt vers une tonalité positive ou négative.\
             Une orientation ascendante du graphique indique que les actualités publiées sont principalement positives, tandis qu'une orientation descendante suggère le contraire.")
