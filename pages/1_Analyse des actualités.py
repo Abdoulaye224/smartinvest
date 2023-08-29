@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 import re
 import plotly.graph_objects as go
 
-st.title("Analyse de Sentiment")
+st.title("Analyse des actualités ")
 
 finviz_url = 'https://finviz.com/quote.ashx?t='
 
@@ -19,6 +19,12 @@ sp500_companies = {
     'Apple': 'AAPL',
     'Amazon': 'AMZN',
     'Facebook': 'META',
+    'Microsoft Corporation':'MSFT',
+    'JPMorgan Chase & Co.':'JPM',
+    'Alphabet Inc. Class C':'GOOG',
+    'Alphabet Inc. Class A':'GOOGL',
+    'Cisco Systems Inc.':'CSCO',
+    'Pfizer Inc.':'PFE'
     # Ajoutez d'autres entreprises ici
 }
 
@@ -38,12 +44,11 @@ new_tables[selected_ticker] = news_table
 
 print('selected_ticker', selected_ticker)
 
-# ... (le reste de votre code pour collecter les données et calculer les scores de sentiment)
 parsed_data = []
-last_date = ""  # Initialiser la dernière date
+last_date = "" 
 for ticker, new_table in new_tables.items():
     for row in new_table.findAll('tr'):
-        title_elem = row.find('a')  # Find the <a> tag within the row
+        title_elem = row.find('a')  #
         if title_elem is not None:  # Check if the <a> tag exists
             title = title_elem.text
         
@@ -90,3 +95,6 @@ fig = go.Figure()
 fig.add_trace(go.Bar(x=mean_df.date, y=mean_df['compound'], name='score'))
 st.plotly_chart(fig,  use_container_width=True)
 #st.bar_chart(mean_df, x='date', y='compound')
+
+st.caption("Ce graphique vous offre la possibilité de discerner si les actualités récentes liées au marché ou à l'entreprise que vous avez sélectionnée penchent plutôt vers une tonalité positive ou négative.\
+            Une orientation ascendante du graphique indique que les actualités publiées sont principalement positives, tandis qu'une orientation descendante suggère le contraire.")

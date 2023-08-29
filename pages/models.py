@@ -107,71 +107,79 @@ x_test, y_test = np.array(x_test), np.array(y_test)
 print(y_test.shape)
 
 
-#**************************************** Model LSTM
+@st.cache_data
+def train_model(md, x_train, y_train, epochs):
+    if md=="LSTM":
+        model = Sequential()
+        model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
+        model.add(LSTM(units=50, return_sequences=False))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=1))
+        model.compile(optimizer='adam', loss='mean_squared_error')
 
-model = Sequential()
-model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-model.add(LSTM(units=50, return_sequences=False))
-model.add(Dropout(0.2))
-model.add(Dense(units=1))
-model.compile(optimizer='adam', loss='mean_squared_error')
-
-model.fit(x_train, y_train, epochs=1, batch_size=32)
-
-predictions = model.predict(x_test)
-print(predictions)
-
-#********************************************** GRU
-GRU_model = Sequential()
-GRU_model.add(GRU(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-GRU_model.add(GRU(units=50, return_sequences=False))
-GRU_model.add(Dense(units=1))
-GRU_model.compile(optimizer='adam', loss='mean_squared_error')
-GRU_model.fit(x_train, y_train, epochs=1, batch_size=32)
-GRU_predictions = GRU_model.predict(x_test)
-
-#************************************************ CNN
-input_shape = (x_train.shape[1], 1)
-num_classes = 2
-
-CNN = Sequential()
-CNN.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=input_shape))
-CNN.add(MaxPooling1D(pool_size=2))
-CNN.add(LSTM(units=50, return_sequences=True))
-CNN.add(Dropout(0.2))
-CNN.add(Flatten())
-CNN.add(Dense(1, activation='relu'))
+        model.fit(x_train, y_train, epochs=epochs, batch_size=32)
+    elif md=="GRU":
+        model = Sequential()
+        model.add(GRU(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
+        model.add(GRU(units=50, return_sequences=False))
+        model.add(Dense(units=1))
+        model.compile(optimizer='adam', loss='mean_squared_error')
+        model.fit(x_train, y_train, epochs=epochs, batch_size=32)
+    elif md=="CNN":
+        input_shape = (x_train.shape[1], 1)
+        num_classes = 2
+        model = Sequential()
+        model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=input_shape))
+        model.add(MaxPooling1D(pool_size=2))
+        model.add(LSTM(units=50, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(Flatten())
+        model.add(Dense(1, activation='relu'))
 
 
-CNN.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-CNN.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=1, batch_size=32)
+        model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
-cnn_predicted_stock = CNN.predict(x_test)
+        model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=32)
+    
+    return model
+
+epochs_to_train = 50  # Par exemple, 10 époques
+
+
+
+#
+
+
+
+
+
 
 #**********************************************
-
+ 
 # Calcul des erreurs résiduelles
-errors_lstm = y_test - predictions.flatten()
-errors_gru = y_test - GRU_predictions.flatten()
-errors_cnn = y_test - cnn_predicted_stock.flatten()
 
-mean_error_lstm = np.mean(errors_lstm)
-std_error_lstm = np.std(errors_lstm)
-probabilities_lstm = norm.pdf(errors_lstm, mean_error_lstm, std_error_lstm)
 
-mean_error_gru = np.mean(errors_gru)
-std_error_gru = np.std(errors_gru)
-probabilities_gru = norm.pdf(errors_gru, mean_error_gru, std_error_gru)
 
-mean_error_cnn = np.mean(errors_cnn)
-std_error_cnn = np.std(errors_cnn)
-probabilities_cnn = norm.pdf(errors_cnn, mean_error_cnn, std_error_cnn)
+
+
+
 
 #**********************************************
 
 def build_graphe(md):
-    
+    value = {}
+
     if md == 'LSTM':
+        model= train_model('LSTM', x_train, y_train, epochs_to_train)
+        predictions = model.predict(x_test)
+        errors_lstm = y_test - predictions.flatten()
+        mean_error_lstm = np.mean(errors_lstm)
+        std_error_lstm = np.std(errors_lstm)
+        probabilities_lstm = norm.pdf(errors_lstm, mean_error_lstm, std_error_lstm)
+
+        value['accuracy'] = round(r2_score(y_test, predictions), 2)
+        value['mse'] = round(mean_squared_error(y_test, predictions), 2)
+        value['mae'] = round(mean_absolute_error(y_test, predictions), 2)
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=test_data_dates[-252:], y=y_test, mode='lines', name='Données Réelles'))
@@ -187,6 +195,17 @@ def build_graphe(md):
         plt.ylabel("Probabilité")
     
     elif md == 'GRU':
+        GRU_model= train_model('GRU', x_train, y_train, epochs_to_train)
+        GRU_predictions = GRU_model.predict(x_test)
+        errors_gru = y_test - GRU_predictions.flatten()
+        
+        mean_error_gru = np.mean(errors_gru)
+        std_error_gru = np.std(errors_gru)
+        probabilities_gru = norm.pdf(errors_gru, mean_error_gru, std_error_gru)
+
+        value['accuracy'] = round(r2_score(y_test, GRU_predictions), 2)
+        value['mse'] = round(mean_squared_error(y_test, GRU_predictions), 2)
+        value['mae'] = round(mean_absolute_error(y_test, GRU_predictions), 2)
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=test_data_dates[-252:], y=y_test, mode='lines', name='Données Réelles'))
@@ -201,6 +220,20 @@ def build_graphe(md):
         plt.ylabel("Probabilité")
     
     elif md == 'CNN':
+
+        CNN_model= train_model('CNN', x_train, y_train, epochs_to_train)
+        cnn_predicted_stock = CNN_model.predict(x_test)
+        errors_cnn = y_test - cnn_predicted_stock.flatten()
+
+        value['accuracy'] = round(r2_score(y_test, cnn_predicted_stock), 2)
+        value['mse'] = round(mean_squared_error(y_test, cnn_predicted_stock), 2)
+        value['mae'] = round(mean_absolute_error(y_test, cnn_predicted_stock), 2)
+        
+        mean_error_cnn = np.mean(errors_cnn)
+        std_error_cnn = np.std(errors_cnn)
+        probabilities_cnn = norm.pdf(errors_cnn, mean_error_cnn, std_error_cnn)
+
+
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=test_data_dates[-252:], y=y_test, mode='lines', name='Données Réelles'))
         fig.add_trace(go.Scatter(x=test_data_dates[-252:], y=cnn_predicted_stock.flatten(), mode='lines', name='Prédictions du Modèle CNN'))
@@ -229,22 +262,13 @@ genre = st.radio(
     "Models à évaluer : ",
     ('LSTM', 'GRU', 'CNN'))
 
-value = {}
-
 if genre == 'LSTM':
-    value['accuracy'] = round(r2_score(y_test, predictions), 2)
-    value['mse'] = round(mean_squared_error(y_test, predictions), 2)
-    value['mae'] = round(mean_absolute_error(y_test, predictions), 2)
+
 
     build_graphe('LSTM')
 elif genre == 'GRU':
-    value['accuracy'] = round(r2_score(y_test, GRU_predictions), 2)
-    value['mse'] = round(mean_squared_error(y_test, GRU_predictions), 2)
-    value['mae'] = round(mean_absolute_error(y_test, GRU_predictions), 2)
 
     build_graphe('GRU')
 elif genre == 'CNN':
-    value['accuracy'] = round(r2_score(y_test, cnn_predicted_stock), 2)
-    value['mse'] = round(mean_squared_error(y_test, cnn_predicted_stock), 2)
-    value['mae'] = round(mean_absolute_error(y_test, cnn_predicted_stock), 2)
+
     build_graphe('CNN')

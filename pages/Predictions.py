@@ -14,7 +14,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 from keras.callbacks import EarlyStopping
-from keras.models import Sequential
+from keras.models import Sequential 
 from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense
 from sklearn.metrics import r2_score
 from sklearn.ensemble import AdaBoostRegressor, RandomForestRegressor, GradientBoostingRegressor
@@ -45,14 +45,6 @@ sp500.index = sp500.index.date
 max_date = sp500.index.max()
 
 #*********************************** A N I M A T I O N ****************************************
-
-
-def lottie_url(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
-
 def load_lottiefile(filepath: str):
     with open(filepath, "r") as f:
         return json.load(f)
@@ -126,12 +118,12 @@ def train_model(md, x_train, y_train, epochs):
 
         model.fit(x_train, y_train, epochs=epochs, batch_size=32)
     elif md=="GRU":
-        GRU_model = Sequential()
-        GRU_model.add(GRU(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-        GRU_model.add(GRU(units=50, return_sequences=False))
-        GRU_model.add(Dense(units=1))
-        GRU_model.compile(optimizer='adam', loss='mean_squared_error')
-        GRU_model.fit(x_train, y_train, epochs=epochs, batch_size=32)
+        model = Sequential()
+        model.add(GRU(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
+        model.add(GRU(units=50, return_sequences=False))
+        model.add(Dense(units=1))
+        model.compile(optimizer='adam', loss='mean_squared_error')
+        model.fit(x_train, y_train, epochs=epochs, batch_size=32)
     elif md=="CNN":
         input_shape = (x_train.shape[1], 1)
         num_classes = 2
@@ -143,20 +135,14 @@ def train_model(md, x_train, y_train, epochs):
         model.add(Flatten())
         model.add(Dense(1, activation='relu'))
 
-
         model.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
 
         model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=32)
     
     return model
 
-epochs_to_train = 50  # Par exemple, 10 époques
+epochs_to_train = 50
 final_model = train_model('CNN', x_train, y_train, epochs_to_train)
-
-test_predict = final_model.predict(x_test)
-r2 = r2_score(y_test, test_predict)
-
-print(f"R-squared: {r2}")
 
 
 
@@ -267,19 +253,15 @@ def apply_strategy(long_window, short_window):
     results.append({'Long_Window': long_window, 'Short_Window': short_window, 'Total_Return': total_return})
     st.write(f"Rendement total pour Long Window: {long_window}, Short Window: {short_window} : {total_return:.2f} points")
 
-# Charger vos données future_df ici (remplacez-le par votre propre code)
 
-# Utilisez des widgets interactifs pour permettre à l'utilisateur de choisir les fenêtres temporelles
 st.sidebar.title("Paramètres de la Stratégie")
 long_window = st.sidebar.slider("Choisissez la fenêtre temporelle longue :", min_value=10, max_value=100, step=1, value=30)
 short_window = st.sidebar.slider("Choisissez la fenêtre temporelle courte :", min_value=5, max_value=50, step=1, value=10)
 
-# Bouton "Appliquer la Stratégie"
 apply_strategy_button = st.sidebar.button("Appliquer la Stratégie")
 
 apply_strategy(long_window, short_window)
 
-# Afficher les résultats de chaque combinaison et la combinaison avec le meilleur rendement
 if results:
     best_combination = max(results, key=lambda x: x['Total_Return'])
     st.sidebar.write("\nLa combinaison avec le meilleur rendement :")

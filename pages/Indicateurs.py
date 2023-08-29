@@ -65,9 +65,15 @@ df_features = sp500[feature_selection]
 plotly_figure = px.line(data_frame=df_features, x=df_features.index, y=feature_selection, title="Chronologie")
 
 if len(feature_selection) == 0:
-    st.info('Veuillez selectionner la(es) donnée(s) à afficher dans les paramètres ! ')
+    st.info('Veuillez choisir d\'autres attributs dont vous voulez voir l\'évolution dans les paramètres ! ')
+    plotly_figure = px.line(data_frame=sp500, x=sp500.index, y=sp500.Close, title="Chronologie")
+    st.plotly_chart(plotly_figure) 
+
 else:
     st.plotly_chart(plotly_figure) 
+
+st.caption("Ce diagramme présente la progression chronologique de l'indicateur que vous aurez sélectionné, tel que le prix de clôture, le prix le plus bas, le prix le plus élevé, etc. \
+           Vous pouvez concentrer votre attention sur la période qui vous intéresse en la déterminant directement sur le graphique.")
 
 hide_volum = st.sidebar.checkbox(label="Afficher les volume selon une période ")
 
@@ -129,7 +135,49 @@ if len(a_date2) == 2:
     )
 
     st.plotly_chart(fig)
-
+    st.caption(" . MACD Line (Ligne MACD) : Représentée en bleu, la ligne MACD illustre la différence entre la moyenne mobile exponentielle à 12 jours et celle à 26 jours. Elle est un indicateur de l'élan et de la tendance.\
+               \n\
+                . Signal Line (Ligne de Signal) : Affichée en jaune, la ligne de signal est la moyenne mobile exponentielle à 9 jours du MACD. Elle sert de signal pour les points 'achat et de vente potentiels.\
+               \n\
+                . Histogram : Présenté en vert, l'histogramme est la différence entre la ligne MACD et la ligne de signal. Il met en évidence les variations entre le MACD et sa ligne de signal, indiquant des croisements et des divergences.")
+        
 else :
     st_lottie(lotti_inprogress,speed=1,reverse=False,loop=True,quality="low",height=200,width=200,key=None,)
 
+# Votre code pour la manipulation et la création du DataFrame sector_breakdown
+f = {'Revenuegrowth':['mean'], 'Marketcap':['sum'], 'Longname':['count']}
+
+sector_breakdown = data.groupby('Sector').agg(f)
+sector_breakdown.columns = sector_breakdown.columns.get_level_values(0)
+sector_breakdown = sector_breakdown.reset_index()
+sector_breakdown = sector_breakdown.sort_values('Longname', ascending=False)
+
+# Création des graphiques Plotly
+fig1 = px.bar(sector_breakdown, x='Longname', y='Sector', title='Repartition par secteur',
+              labels={'Longname': 'Nombre d\'entreprises', 'Sector': 'Secteur '},
+              color='Sector', color_discrete_sequence=px.colors.qualitative.Set1,
+              template='plotly')
+fig1.update_traces(showlegend=False)  # Masquer la légende
+fig2 = px.bar(sector_breakdown, x='Marketcap', y='Sector', title='',
+              labels={'Marketcap': 'Part de marché', 'Sector': ''},
+              color='Sector', color_discrete_sequence=px.colors.qualitative.Set1,
+              template='plotly')
+fig2.update_traces(showlegend=False)  # Masquer la légende
+
+
+
+# Affichage des graphiques horizontalement avec st.columns
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(fig1, use_container_width=True)
+
+with col2:
+    st.plotly_chart(fig2, use_container_width=True)
+
+
+fig3 = px.bar(sector_breakdown, x='Revenuegrowth', y='Sector', title='',
+              labels={'Revenuegrowth': 'Croissance de revenus', 'Sector': ''},
+              template='plotly')
+
+st.plotly_chart(fig3, use_container_width=True)
