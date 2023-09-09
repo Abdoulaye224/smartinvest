@@ -8,6 +8,7 @@ from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
 import re
 import plotly.graph_objects as go
+from datetime import datetime
 
 st.title("Analyse des actualités ")
 
@@ -25,7 +26,6 @@ sp500_companies = {
     'Alphabet Inc. Class A':'GOOGL',
     'Cisco Systems Inc.':'CSCO',
     'Pfizer Inc.':'PFE'
-    # Ajoutez d'autres entreprises ici
 }
 
 # Demande à l'utilisateur de choisir le nom d'une entreprise
@@ -54,17 +54,20 @@ for ticker, new_table in new_tables.items():
         
         # Utilisation de strip() pour supprimer les espaces et sauts de ligne inutiles
         date_time_str = row.td.text.strip()
-        
         date_data = date_time_str.split(' ')
         
+
         if len(date_data) == 1:
             time = date_data[0]
             date = last_date  # Utiliser la dernière date
         else:
-            date = date_data[0]
+            if date_data[0]=='Today':
+                date_data[0]=datetime.now()
+                date = date_data[0]
+            else :
+                date = date_data[0]
             time = date_data[1]
             last_date = date  # Mettre à jour la dernière date
-        
         parsed_data.append([ticker, date, time, title])
 
 df = pd.DataFrame(parsed_data, columns=['ticker', 'date', 'time', 'title'])
