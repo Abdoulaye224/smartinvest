@@ -56,7 +56,7 @@ st.title("Performances de nos modèles")
 with st.expander(
     "Cette page vous permettra d'évaluer nos différents models", expanded=False
 ):
-    st.write(" Cette page permet d'afficher les performances en temps réel de nos modèles, y compris les prédictions actuelles, les erreurs, les indicateurs de performance.  La miase automatiques des données pour refléter les dernières informations du marché")
+    st.write(" Cette page permet d'afficher les performances en temps réel de nos modèles, y compris les prédictions actuelles, les erreurs, les indicateurs de performance. La mise automatiques des données pour refléter les dernières informations du marché.")
     st.write("")
 st.write("")
 
