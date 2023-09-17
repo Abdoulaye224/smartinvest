@@ -143,24 +143,11 @@ def train_model(md, x_train, y_train, epochs):
     
     return model
 
-epochs_to_train = 50  # Par exemple, 10 époques
-
-
-
-#
-
-
-
-
-
+epochs_to_train = 10 
 
 #**********************************************
  
 # Calcul des erreurs résiduelles
-
-
-
-
 
 
 

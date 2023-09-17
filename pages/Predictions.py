@@ -141,8 +141,8 @@ def train_model(md, x_train, y_train, epochs):
     
     return model
 
-epochs_to_train = 50
-final_model = train_model('CNN', x_train, y_train, epochs_to_train)
+epochs_to_train = 30
+final_model = train_model('LSTM', x_train, y_train, epochs_to_train)
 
 
 
@@ -258,7 +258,6 @@ st.sidebar.title("Paramètres de la Stratégie")
 long_window = st.sidebar.slider("Choisissez la fenêtre temporelle longue :", min_value=10, max_value=100, step=1, value=30)
 short_window = st.sidebar.slider("Choisissez la fenêtre temporelle courte :", min_value=5, max_value=50, step=1, value=10)
 
-apply_strategy_button = st.sidebar.button("Appliquer la Stratégie")
 
 apply_strategy(long_window, short_window)
 
