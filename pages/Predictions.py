@@ -142,7 +142,7 @@ def train_model(md, x_train, y_train, epochs):
     return model
 
 epochs_to_train = 30
-final_model = train_model('LSTM', x_train, y_train, epochs_to_train)
+final_model = train_model('CNN', x_train, y_train, epochs_to_train)
 
 
 
