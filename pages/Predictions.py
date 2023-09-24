@@ -147,7 +147,7 @@ final_model = train_model('LSTM', x_train, y_train, epochs_to_train)
 
 
 #****************************** P R E D I C T **************************************************
-num_days_to_predict = st.number_input("Nombre de jours à prédire :", min_value=1, max_value=365, value=30)  
+num_days_to_predict = st.number_input("Nombre de jours à prédire :", min_value=1, max_value=365, value=100)  
 
 start_date = pd.to_datetime(test_data_dates[-1]) + timedelta(days=1)
 future_dates = [start_date + timedelta(days=i) for i in range(num_days_to_predict)]
