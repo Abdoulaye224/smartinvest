@@ -34,6 +34,8 @@ sp500 = sp500.history(period="max")
 
 
 sp500 = sp500.loc["1990-01-01":].copy()
+# S'assure que l'index est bien au format datetime avant d'en extraire la date
+sp500.index = pd.to_datetime(sp500.index)
 sp500.index = sp500.index.date
 
 st.set_page_config(
