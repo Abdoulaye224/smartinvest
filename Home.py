@@ -11,7 +11,7 @@ import json
 
 
 def lottie_url(url: str):
-    r = requests.get(url)
+    r = requests.get(url, verify=False)
     if r.status_code != 200:
         return None
     return r.json()
@@ -32,6 +32,7 @@ sp500 = yf.Ticker("^GSPC")
 
 sp500 = sp500.history(period="max")
 
+print(sp500)
 
 sp500 = sp500.loc["1990-01-01":].copy()
 # S'assure que l'index est bien au format datetime avant d'en extraire la date
