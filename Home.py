@@ -32,8 +32,6 @@ sp500 = yf.Ticker("^GSPC")
 
 sp500 = sp500.history(period="max")
 
-del sp500["Dividends"]
-del sp500["Stock Splits"]
 
 sp500 = sp500.loc["1990-01-01":].copy()
 sp500.index = sp500.index.date
